@@ -1,6 +1,6 @@
 from typing import Annotated
 from collections.abc import Generator
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, HTTPException, status
 from pydantic import ValidationError
 import jwt
 from fastapi.security import OAuth2PasswordBearer
