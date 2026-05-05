@@ -1,7 +1,7 @@
 from sqlmodel import Session,select
 
-from backend.app.core.security import get_hash_password
-from backend.app.models.Users import UserCreate,User, UserUpdate
+from app.core.security import get_hash_password
+from app.models.Users import UserCreate,User, UserUpdate
 
 def get_user_by_email(*,session: Session, email: str) -> User | None:
     select_statement = select(User).where(User.email == email)

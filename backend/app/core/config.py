@@ -1,4 +1,7 @@
-from pydantic import BaseSettings, SettingsConfigDict,PostgresDsn, computed_field
+import secrets
+
+from pydantic import PostgresDsn, computed_field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Literal
 
 class Settings(BaseSettings):
@@ -10,11 +13,11 @@ class Settings(BaseSettings):
     )
     ENVIRONMENT: Literal["local", "staging", "production"] = "local"
     API_V1_STR: str = "/api/v1"
-    SECRET_KEY: str
+    SECRET_KEY: str = secrets.token_urlsafe(32)
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
     POSTGRES_SERVER: str
-    POSTGRES_PORT: str
+    POSTGRES_PORT: int
     POSTGRES_DB: str
     @computed_field  # type: ignore[prop-decorator]
     @property

@@ -9,7 +9,7 @@ from app.core.db import engine
 from app.core.config import settings
 from app.core import security
 from app.models.Users import User,TokenPayload
-from jwt.exceptions import InvalidTokenError, ExpiredSignatureError
+from jwt.exceptions import InvalidTokenError
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl=f"{settings.API_V1_STR}/login/access-token"
     )
@@ -25,7 +25,7 @@ def get_current_user(token: tokenDep, session: sessionDep) -> User:
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[security.ALGORITHM])
         token_data = TokenPayload(**payload)
-    except (InvalidTokenError, ExpiredSignatureError, ValidationError):
+    except (InvalidTokenError, ValidationError):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid token")
     user = session.get(User, token_data.sub)
     if not user:

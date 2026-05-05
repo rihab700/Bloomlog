@@ -9,7 +9,7 @@ from sqlmodel import col, select
 from sqlalchemy import func
 from app.core.security import verify_password, get_hash_password
 from app import crud
-from app.models import Message
+from app.models.Message import Message
 
 
 router = APIRouter(prefix="/users", tags=["users"])

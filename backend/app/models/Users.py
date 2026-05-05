@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 import uuid
-from sqlmodel import Datetime
+from sqlmodel import DateTime
 from pydantic import EmailStr
 
 from sqlmodel import SQLModel, Field
@@ -13,6 +13,7 @@ class UserBase(SQLModel):
     is_superuser: bool = False
     is_active: bool = True
     full_name: str | None = Field(max_length=255,default=None)
+
 
 class UserCreate(UserBase):
     password: str = Field(min_length=8, max_length=128)
@@ -37,11 +38,11 @@ class UserUpdatePassword(SQLModel):
 class User(UserBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     hashed_password: str
-    created_at: datetime | None = Field(default_factory=get_datetime_utc,sa_type=Datetime(timezone=True))   
+    created_at: datetime | None = Field(default_factory=get_datetime_utc,sa_type=DateTime(timezone=True))   
 
 class UserPublic(UserBase):
     id: uuid.UUID
-    created_at: datetime | None = Field(default_factory=get_datetime_utc,sa_type=Datetime(timezone=True))
+    created_at: datetime | None = Field(default_factory=get_datetime_utc,sa_type=DateTime(timezone=True))
 
     
 class UsersPublic(SQLModel):
