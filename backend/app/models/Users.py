@@ -49,7 +49,7 @@ class UsersPublic(SQLModel):
     users: list[UserPublic]
     count: int  
 
-class token(SQLModel):
+class Token(SQLModel):
     access_token: str
     token_type: str = "bearer"
 
