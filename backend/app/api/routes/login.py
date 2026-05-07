@@ -12,7 +12,7 @@ from app.core.config import settings
 
 
 
-router = APIRouter(prefix="/login", tags=["login"])
+router = APIRouter(tags=["login"])
 
 @router.post("/login/access-token")
 def login(*, session: sessionDep, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> Token:
