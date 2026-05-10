@@ -17,9 +17,9 @@ from app.utils import verify_password_reset_token
 router = APIRouter(tags=["login"])
 
 @router.post("/login/access-token")
-def login(*, session: sessionDep, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> Token:
+async def login(*, session: sessionDep, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> Token:
     """ OAuth2 compatible token login, get an access token for future requests."""
-    user = crud.authenticate(
+    user = await crud.authenticate(
         session=session, email=form_data.username, password=form_data.password
     )
     if not user:
@@ -33,7 +33,7 @@ def login(*, session: sessionDep, form_data: Annotated[OAuth2PasswordRequestForm
         )
     )
 @router.post("/login/test-token", response_model=UserPublic)
-def test_token(current_user: CurrentUser) -> Any:
+async def test_token(current_user: CurrentUser) -> Any:
     """
     Test access token
     """
@@ -41,21 +41,21 @@ def test_token(current_user: CurrentUser) -> Any:
 
 
 @router.post("/reset-password/")
-def reset_password(session: sessionDep, body: NewPassword) -> Message:
+async def reset_password(session: sessionDep, body: NewPassword) -> Message:
     """
     Reset password
     """
     email = verify_password_reset_token(token=body.token)
     if not email:
         raise HTTPException(status_code=400, detail="Invalid token")
-    user = crud.get_user_by_email(session=session, email=email)
+    user = await crud.get_user_by_email(session=session, email=email)
     if not user:
         # Don't reveal that the user doesn't exist - use same error as invalid token
         raise HTTPException(status_code=400, detail="Invalid token")
     elif not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     user_in_update = UserUpdate(password=body.new_password)
-    crud.update_user(
+    await crud.update_user(
         session=session,
         db_user=user,
         user_in=user_in_update,

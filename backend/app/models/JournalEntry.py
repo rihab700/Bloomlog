@@ -5,9 +5,10 @@ import uuid
 from sqlalchemy import ARRAY, Column, String, JSON
 from sqlalchemy import DateTime as SADateTime
 from sqlmodel import SQLModel, Field, DateTime, Relationship
-from app.models.Users import User
 
-
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from app.models.Users import User
 def get_datetime_utc() -> datetime:
     return datetime.now(timezone.utc)
 
@@ -58,7 +59,7 @@ class JournalEntry(JournalEntryBase, table=True):
     transcription_status: Status = Field(default=Status.PENDING)
     # these attribute are no colum in DB aka their value is not a singular value like an integer. 
     # Their value is the actual entire object that is related.
-    user: User = Relationship(back_populates="journal_entries")
+    user: "User" = Relationship(back_populates="journal_entries")
     media: list["Media"] | None = Relationship(
         back_populates="entry",
         cascade_delete=True,

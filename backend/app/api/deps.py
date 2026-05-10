@@ -1,10 +1,12 @@
 from typing import Annotated
-from collections.abc import Generator
+from collections.abc import AsyncGenerator
 from fastapi import Depends, HTTPException, status
 from pydantic import ValidationError
 import jwt
 from fastapi.security import OAuth2PasswordBearer
-from sqlmodel import Session
+from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.orm import sessionmaker
+
 from app.core.db import engine
 from app.core.config import settings
 from app.core import security
@@ -14,20 +16,23 @@ oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl=f"{settings.API_V1_STR}/login/access-token"
     )
 
-def get_db()-> Generator[Session, None, None]:
-    with Session(engine) as session:
+async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+
+async def get_db()-> AsyncGenerator[AsyncSession, None]:
+    async with async_session() as session:
         yield session
 
-sessionDep = Annotated[Session, Depends(get_db)]
+sessionDep = Annotated[AsyncSession, Depends(get_db)]
 tokenDep = Annotated[str, Depends(oauth2_scheme)]
 
-def get_current_user(token: tokenDep, session: sessionDep) -> User:
+async def get_current_user(token: tokenDep, session: sessionDep) -> User:
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[security.ALGORITHM])
         token_data = TokenPayload(**payload)
     except (InvalidTokenError, ValidationError):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid token")
-    user = session.get(User, token_data.sub)
+    user = await session.get(User, token_data.sub)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     if not user.is_active:
