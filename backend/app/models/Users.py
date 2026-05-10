@@ -2,8 +2,9 @@ from datetime import datetime, timezone
 import uuid
 from sqlmodel import DateTime
 from pydantic import EmailStr
+from app.models.JournalEntry import JournalEntry
 
-from sqlmodel import SQLModel, Field
+from sqlmodel import SQLModel, Field, Relationship
 
 def get_datetime_utc() -> datetime:
     return datetime.now(timezone.utc)
@@ -39,10 +40,15 @@ class User(UserBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     hashed_password: str
     created_at: datetime | None = Field(default_factory=get_datetime_utc,sa_type=DateTime(timezone=True))   
+    journal_entries: list[JournalEntry] | None = Relationship(
+        back_populates="user",
+        cascade_delete=True,
+        passive_deletes=True,
+    )
 
 class UserPublic(UserBase):
     id: uuid.UUID
-    created_at: datetime | None = Field(default_factory=get_datetime_utc,sa_type=DateTime(timezone=True))
+    created_at: datetime | None 
 
     
 class UsersPublic(SQLModel):
