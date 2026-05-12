@@ -5,9 +5,20 @@ from fastapi import APIRouter, HTTPException, Query, status
 from app.api.deps import CurrentUser, sessionDep
 from app.models.JournalEntry import JournalEntry, JournalEntriesPublic,JournalEntryCreate, JournalEntryPublic, JournalEntryUpdate
 from sqlmodel import select
+from sqlalchemy.orm import selectinload
+
 from sqlalchemy import func
 
 from app.models.Users import User
+
+def entry_with_relations():
+    return (
+        select(JournalEntry)
+        .options(
+            selectinload(JournalEntry.media),
+            selectinload(JournalEntry.mood_log)
+        )
+    )
 
 router = APIRouter(prefix="/journal-entries", tags=["Journal Entries"])
 @router.get("/", response_model=JournalEntriesPublic)
@@ -25,7 +36,8 @@ async def get_journal_entries(*, session:sessionDep, current_user: CurrentUser,u
         user_id = current_user.id        
     
     statement = (
-        select(JournalEntry).where(JournalEntry.user_id == user_id)
+        entry_with_relations()
+        .where(JournalEntry.user_id == user_id)
     )
     if from_date:
         statement = statement.where(JournalEntry.recorded_at >= from_date)
@@ -65,7 +77,7 @@ async def get_journal_entry(*, session: sessionDep, current_user: CurrentUser, e
     """
     Retrieve a specific journal entry by its ID.
     """
-    statement = select(JournalEntry).where(JournalEntry.id == entry_id)
+    statement = entry_with_relations().where(JournalEntry.id == entry_id)
     result = await session.exec(statement)
     entry = result.one_or_none()
     if not entry:
@@ -79,7 +91,7 @@ async def update_journal_entry(*, session: sessionDep, current_user: CurrentUser
     """
     Update a specific journal entry by its ID.
     """
-    statement = select(JournalEntry).where(JournalEntry.id == entry_id)
+    statement = entry_with_relations().where(JournalEntry.id == entry_id)
     result = await session.exec(statement)
     entry = result.one_or_none()
     if not entry:
@@ -99,7 +111,7 @@ async def delete_journal_entry(*, session: sessionDep, current_user: CurrentUser
     """
     Delete a specific journal entry by its ID.
     """
-    statement = select(JournalEntry).where(JournalEntry.id == entry_id)
+    statement = entry_with_relations().where(JournalEntry.id == entry_id)
     result = await session.exec(statement)
     entry = result.one_or_none()
     if not entry:
