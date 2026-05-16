@@ -1,12 +1,23 @@
 import uuid
 
 from fastapi import APIRouter, HTTPException, UploadFile, status
+from sqlalchemy import Enum
 from app.api.deps import CurrentUser, sessionDep
 from app.models.JournalEntry import JournalEntry,Media, MediaCreate, MediaPublic
 from sqlmodel import select
 from app.api.deps import StorageDep
 
-ALLOWED_MIME_TYPES = {"audio/mp4", "audio/mpeg", "audio/wav", "audio/ogg", "video/mp4"}
+class AllowedMediaType(str, Enum):
+    # Audio
+    AUDIO_MP4 = "audio/mp4"
+    AUDIO_MPEG = "audio/mpeg"
+    AUDIO_WAV = "audio/wav"
+    AUDIO_OGG = "audio/ogg"
+    # Image
+    IMAGE_PNG = "image/png"
+    IMAGE_JPEG = "image/jpeg"
+    IMAGE_WEBP = "image/webp"
+
 
 
 async def get_entry_and_check_ownership(*,entry_id: uuid.UUID, session: sessionDep, current_user: CurrentUser) -> JournalEntry:
@@ -26,8 +37,11 @@ async def add_media_to_entry(*, session: sessionDep, current_user: CurrentUser, 
     """
     Add a media attachment to a journal entry.
     """
-    if file.content_type not in ALLOWED_MIME_TYPES:
+    try:
+        AllowedMediaType(file.content_type)
+    except ValueError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported media type")
+
     
     entry = await get_entry_and_check_ownership(entry_id=entry_id, session=session, current_user=current_user)
     s3_key = storage_service.build_journal_media_key(
@@ -42,7 +56,7 @@ async def add_media_to_entry(*, session: sessionDep, current_user: CurrentUser, 
 )
     media = Media(
     entry_id=entry_id,
-    media_type=file.content_type.split("/")[0],
+    media_type=AllowedMediaType(file.content_type),
     mime_type=file.content_type,
     s3_key=s3_key,
     file_size=upload_result.file_size,

@@ -60,7 +60,7 @@ class Token(SQLModel):
     token_type: str = "bearer"
 
 class TokenPayload(SQLModel):
-    sub: str | None = None
+    sub: uuid.UUID | None = None
 
 class NewPassword(SQLModel):
     token: str

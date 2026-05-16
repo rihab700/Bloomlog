@@ -56,7 +56,7 @@ class JournalEntry(JournalEntryBase, table=True):
     recorded_at: datetime | None = Field(default=None, sa_type=DateTime(timezone=True))
 
     transcription_text: str | None = Field(default=None)
-    transcription_status: Status = Field(default=Status.PENDING)
+    transcription_status: Status | None = Field(default=None, sa_column=Column(String(50)))
     # these attribute are no colum in DB aka their value is not a singular value like an integer. 
     # Their value is the actual entire object that is related.
     user: "User" = Relationship(back_populates="journal_entries")
@@ -117,7 +117,7 @@ class Media(MediaBase, table=True):
 
 class MediaPublic(MediaBase):
     id: uuid.UUID
-    url: str
+    url: str | None = None
     uploaded_at: datetime
 
 class MediaCreate(MediaBase):

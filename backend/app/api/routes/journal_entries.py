@@ -69,7 +69,7 @@ async def create_journal_entry(*, session: sessionDep, current_user: CurrentUser
     entry = JournalEntry(**entry_in.model_dump(exclude_unset=True), user_id=current_user.id)
     session.add(entry)
     await session.commit()
-    await session.refresh(entry)
+    await session.refresh(entry,attribute_names=["media", "mood_log"])
     return entry
 
 @router.get("/{entry_id}", response_model=JournalEntryPublic)
@@ -103,7 +103,7 @@ async def update_journal_entry(*, session: sessionDep, current_user: CurrentUser
     entry.sqlmodel_update(entry_data)
     session.add(entry)
     await session.commit()
-    await session.refresh(entry)
+    await session.refresh(entry, attribute_names=["media", "mood_log"])
     return entry
 
 @router.delete("/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
