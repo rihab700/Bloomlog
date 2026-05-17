@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from enum import Enum
+from sqlalchemy import Enum as SAEnum
 from typing import Optional
 import uuid
 from sqlalchemy import ARRAY, Column, String, JSON
@@ -140,7 +141,8 @@ class MoodLogBase(SQLModel):
 class MoodLog(MoodLogBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     entry_id: uuid.UUID = Field(foreign_key="journalentry.id", unique=True, ondelete="CASCADE")
-    logged_at: datetime = Field(default_factory=get_datetime_utc, sa_type=DateTime(timezone=True))
+    logged_at: datetime = Field(default_factory=get_datetime_utc, sa_column=Column(
+        SADateTime(timezone=True),default=get_datetime_utc,onupdate=get_datetime_utc))
     entry: JournalEntry = Relationship(back_populates="mood_log")
 
 class MoodLogCreate(MoodLogBase):
