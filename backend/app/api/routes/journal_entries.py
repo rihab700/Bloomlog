@@ -2,8 +2,8 @@ from datetime import datetime
 import uuid
 
 from fastapi import APIRouter, HTTPException, Query, status
-from app.api.deps import CurrentUser, sessionDep
-from app.models.JournalEntry import JournalEntry, JournalEntriesPublic,JournalEntryCreate, JournalEntryPublic, JournalEntryUpdate
+from app.api.deps import CurrentUser, sessionDep, StorageDep
+from app.models.JournalEntry import JournalEntry, JournalEntriesPublic,JournalEntryCreate, JournalEntryPublic, JournalEntryUpdate, MediaPublic
 from sqlmodel import select
 from sqlalchemy.orm import selectinload
 
@@ -20,9 +20,18 @@ def entry_with_relations():
         )
     )
 
+async def entry_to_public(entry: JournalEntry, storage_service: StorageDep) -> JournalEntryPublic:
+    media_with_urls: list[MediaPublic] = []
+    for media_item in entry.media or []:
+        url = await storage_service.generate_presigned_url(media_item.s3_key)
+        media_with_urls.append(MediaPublic(**media_item.model_dump(), url=url))
+    data = entry.model_dump()
+    data["media"] = media_with_urls
+    return JournalEntryPublic(**data)
+
 router = APIRouter(prefix="/journal-entries", tags=["Journal Entries"])
 @router.get("/", response_model=JournalEntriesPublic)
-async def get_journal_entries(*, session:sessionDep, current_user: CurrentUser,user_id: uuid.UUID = None,offset: int = 0, limit: int = Query(default=10, le=100),from_date: datetime | None = None, to_date: datetime | None = None):
+async def get_journal_entries(*, session:sessionDep, current_user: CurrentUser,user_id: uuid.UUID = None,offset: int = 0, limit: int = Query(default=10, le=100),from_date: datetime | None = None, to_date: datetime | None = None, storage_service: StorageDep):
     """
     Retrieve all journal entries for the current user.
     """
@@ -56,13 +65,14 @@ async def get_journal_entries(*, session:sessionDep, current_user: CurrentUser,u
     count_result = await session.exec(count_statement)
     count = count_result.one()
     next_cursor=entries[-1].recorded_at.isoformat() if len(entries) == limit else None
+    public_entries = [await entry_to_public(entry, storage_service) for entry in entries]
 
-    return JournalEntriesPublic(entries=entries, count=count, page=offset // limit + 1, page_size=limit, next_cursor=next_cursor)
+    return JournalEntriesPublic(entries=public_entries, count=count, page=offset // limit + 1, page_size=limit, next_cursor=next_cursor)
 
 
 
 @router.post("/", response_model=JournalEntryPublic)
-async def create_journal_entry(*, session: sessionDep, current_user: CurrentUser, entry_in: JournalEntryCreate):
+async def create_journal_entry(*, session: sessionDep, current_user: CurrentUser, entry_in: JournalEntryCreate, storage_service: StorageDep):
     """
     Create a new journal entry for the current user.
     """
@@ -70,10 +80,10 @@ async def create_journal_entry(*, session: sessionDep, current_user: CurrentUser
     session.add(entry)
     await session.commit()
     await session.refresh(entry,attribute_names=["media", "mood_log"])
-    return entry
+    return await entry_to_public(entry, storage_service)
 
 @router.get("/{entry_id}", response_model=JournalEntryPublic)
-async def get_journal_entry(*, session: sessionDep, current_user: CurrentUser, entry_id: uuid.UUID):
+async def get_journal_entry(*, session: sessionDep, current_user: CurrentUser, entry_id: uuid.UUID, storage_service: StorageDep):
     """
     Retrieve a specific journal entry by its ID.
     """
@@ -84,10 +94,10 @@ async def get_journal_entry(*, session: sessionDep, current_user: CurrentUser, e
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Journal entry not found")
     if entry.user_id != current_user.id and not current_user.is_superuser:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to access this journal entry")
-    return entry
+    return await entry_to_public(entry, storage_service)
 
 @router.patch("/{entry_id}", response_model=JournalEntryPublic)
-async def update_journal_entry(*, session: sessionDep, current_user: CurrentUser, entry_id: uuid.UUID, entry_in: JournalEntryUpdate):
+async def update_journal_entry(*, session: sessionDep, current_user: CurrentUser, entry_id: uuid.UUID, entry_in: JournalEntryUpdate, storage_service: StorageDep):
     """
     Update a specific journal entry by its ID.
     """
@@ -104,7 +114,7 @@ async def update_journal_entry(*, session: sessionDep, current_user: CurrentUser
     session.add(entry)
     await session.commit()
     await session.refresh(entry, attribute_names=["media", "mood_log"])
-    return entry
+    return await entry_to_public(entry, storage_service)
 
 @router.delete("/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_journal_entry(*, session: sessionDep, current_user: CurrentUser, entry_id: uuid.UUID):

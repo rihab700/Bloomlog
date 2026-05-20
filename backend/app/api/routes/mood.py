@@ -5,7 +5,7 @@ from app.api.deps import sessionDep, CurrentUser
 from app.models.JournalEntry import MoodLog, MoodLogCreate, MoodLogPublic, MoodLogUpdate, JournalEntry,Emotion, Origin
 
 
-router = APIRouter(prefix="/{entry_id}/mood", tags=["mood"]) 
+router = APIRouter(prefix="/journal-entries/{entry_id}/mood", tags=["mood"]) 
 
 @router.get("/", response_model=MoodLogPublic)
 async def get_mood_log(entry_id: uuid.UUID, current_user: CurrentUser, session: sessionDep):
