@@ -35,7 +35,7 @@ class StorageService:
         filename: str,
         recorded_at: datetime,
     ) -> str:
-        date = recorded_at or datetime.now(timezone.utc)
+        date = recorded_at 
         extension = Path(filename).suffix.lower()
         return (
             f"journal_media/"

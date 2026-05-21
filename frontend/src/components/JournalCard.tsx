@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { JournalEntryPublic } from "../types";
 
 type Props = {
@@ -7,45 +7,48 @@ type Props = {
 };
 
 export default function JournalCard({ entry, onOpen }: Props) {
-  // Only consider image or video media for cover/gallery
   const mediaItems = entry.media?.filter((item) =>
     !!item.mime_type && (item.mime_type.startsWith("image/") || item.mime_type.startsWith("video/"))
   ) ?? [];
 
-  const cover = mediaItems[0]?.url ?? null;
+  const [activeIndex, setActiveIndex] = useState(0);
+  const activeMedia = mediaItems[activeIndex];
+
+  const goPrevious = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    setActiveIndex((current) => Math.max(0, current - 1));
+  };
+
+  const goNext = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    setActiveIndex((current) => Math.min(mediaItems.length - 1, current + 1));
+  };
 
   return (
     <button className="journal-card" onClick={() => onOpen(entry.id)}>
       <div className="journal-card-media">
-        {cover ? (
+        {activeMedia ? (
           <div className="journal-card-main">
-            {mediaItems[0]?.mime_type?.startsWith("video/") ? (
-              <video src={cover} autoPlay muted loop playsInline />
+            {activeMedia.mime_type?.startsWith("video/") ? (
+              <video src={activeMedia.url} autoPlay muted loop playsInline />
             ) : (
-              <img src={cover} alt={entry.title ?? "entry image"} />
+              <img src={activeMedia.url} alt={entry.title ?? "entry image"} />
             )}
+            {mediaItems.length > 1 ? (
+              <div className="journal-card-nav">
+                <button type="button" onClick={goPrevious} disabled={activeIndex === 0}>
+                  ‹
+                </button>
+                <span className="journal-card-nav-label">{`${activeIndex + 1}/${mediaItems.length}`}</span>
+                <button type="button" onClick={goNext} disabled={activeIndex === mediaItems.length - 1}>
+                  ›
+                </button>
+              </div>
+            ) : null}
           </div>
         ) : (
           <div className="journal-card-placeholder" />
         )}
-
-        {mediaItems.length ? (
-          <div className="journal-card-gallery">
-            {mediaItems.map((item) => (
-              <div key={item.id} className="journal-card-thumb">
-                {item.url ? (
-                  item.mime_type?.startsWith("video/") ? (
-                    <video src={item.url} autoPlay muted loop playsInline />
-                  ) : (
-                    <img src={item.url} alt={entry.title ?? "entry thumbnail"} />
-                  )
-                ) : (
-                  <div className="journal-card-thumb-placeholder">{item.mime_type?.split("/")[0] || "file"}</div>
-                )}
-              </div>
-            ))}
-          </div>
-        ) : null}
       </div>
       <div className="journal-card-body">
         <div className="journal-card-date">{entry.recorded_at ? new Date(entry.recorded_at).toLocaleDateString() : ""}</div>

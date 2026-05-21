@@ -28,6 +28,13 @@ export async function uploadMedia(token: string, entryId: string, file: File) {
   }, { token, formData: true });
 }
 
+export async function updateEntry(token: string, entryId: string, entryUpdate: Partial<JournalEntryPublic>) {
+  return apiRequest<JournalEntryPublic>(`/journal-entries/${entryId}`, {
+    method: "PATCH",
+    body: JSON.stringify(entryUpdate),
+  }, { token });
+}
+
 export async function deleteMedia(token: string, entryId: string, mediaId: string) {
   return apiRequest<void>(`/journal-entries/${entryId}/media/${mediaId}`, {
     method: "DELETE",
